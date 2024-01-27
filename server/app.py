@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from flask import Flask, request, make_response
+from flask import Flask, request, make_response, jsonify
 from flask_migrate import Migrate
 from flask_restful import Api, Resource
 
@@ -16,8 +16,53 @@ db.init_app(app)
 
 api = Api(app)
 
-class Home(Resource):
-    pass
+class Index(Resource):
+    def get(self):
+        response_dict={
+            "index": "Welcome to the Newsletter RESTful API"
+        }
+
+        response=make_response(jsonify(response_dict), 200)
+
+        return response
+api.add_resource(Index, "/")
+
+#Creating a resource that will fetch all resources and allow posting of a new resource
+class Newsletters(Resource):
+    #Instance method for the GET HTTP verb for the newsletters
+    def get(self):
+
+        response_dict_list=[n.to_dict() for n in Newsletter.query.all()]
+
+        response=make_response(jsonify(response_dict_list), 200)
+
+        return response
+    
+    #Instance method for the POST requests for the URL
+    def post(self):
+        new_newsletter=Newsletter(
+            title=request.form['title'],
+            body=request.form['title']
+        )
+
+        db.session.add(new_newsletter)
+        db.session.commit()
+
+        response=make_response(jsonify(new_newsletter.to_dict()), 200)
+
+        return response
+    
+api.add_resource(Newsletters, "/newsletters")
+
+#Creating a resource that will fetch the resources based on the ID
+class NewsletterByID(Resource):
+    def get(self, id):
+
+        response_dict=Newsletter.query.filter_by(id=id).first().to_dict()
+        response=make_response(jsonify(response_dict), 200)
+        return response
+
+api.add_resource(NewsletterByID, "/newsletters/<int:id>")
 
 if __name__ == '__main__':
     app.run(port=5555, debug=True)
